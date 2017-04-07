@@ -1,0 +1,134 @@
+
+Wine Classification
+In this project you'll be analyzing another set of data from the UC Irvine Machine Learning Repository.
+Your goal is to classify wines grown in the same region of Italy, but from different cultivars (cultivated varities) of grape. The data consists of a class (1, 2, or 3) followed by 13 features as described in the wine.names file.
+Follow the directions in each cell to complete the project.
+In [101]:
+# ======================================|
+#  DO NOT CHANGE ANYTHING IN THIS CELL! |
+# ======================================|
+
+%matplotlib inline
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+import pandas as pd
+In [102]:
+# Load the training data from 'data/wine_train.csv' into
+# a pandas dataframe.
+model_path = 'tmp/model.ckpt'
+
+wine_training = pd.read_csv('data/wine_train.csv', dtype={'Class': 'category'})
+
+wine_test = pd.read_csv('data/wine_test.csv', dtype={'Class': 'category'})
+
+test_features = wine_test.as_matrix()[:,:13]
+
+test_targets = pd.get_dummies(wine_test.Class).as_matrix()
+In [103]:
+# Display the first few rows from the dataframe
+# to ensure proper loading
+wine_training.head()
+Out[103]:
+Class	Alcohol	Malic Acid	Ash	Alkalinity of Ash	Magnesium	Total Phenols	Flavanoids	Nonflavanoid Phenols	Proanthocyanins	Color Intensity	Hue	OD280/OD315 of Diluted Wine	Proline
+0	1	13.20	1.78	2.14	11.2	100	2.65	2.76	0.26	1.28	4.38	1.05	3.40	1050
+1	1	13.16	2.36	2.67	18.6	101	2.80	3.24	0.30	2.81	5.68	1.03	3.17	1185
+2	1	14.37	1.95	2.50	16.8	113	3.85	3.49	0.24	2.18	7.80	0.86	3.45	1480
+3	1	13.24	2.59	2.87	21.0	118	2.80	2.69	0.39	1.82	4.32	1.04	2.93	735
+4	1	14.20	1.76	2.45	15.2	112	3.27	3.39	0.34	1.97	6.75	1.05	2.85	1450
+In [104]:
+# Use the dataframe.count method to ensure
+# all 148 records were loaded
+wine_training.count()
+Out[104]:
+Class                          148
+Alcohol                        148
+Malic Acid                     148
+Ash                            148
+Alkalinity of Ash              148
+Magnesium                      148
+Total Phenols                  148
+Flavanoids                     148
+Nonflavanoid Phenols           148
+Proanthocyanins                148
+Color Intensity                148
+Hue                            148
+OD280/OD315 of Diluted Wine    148
+Proline                        148
+dtype: int64
+In [105]:
+# Declare placeholders and variables for your TensorFlow model here
+x = tf.placeholder(tf.float32, [None, 13])
+y_ = tf.placeholder(tf.float32, [None, 3])
+W = tf.Variable(tf.truncated_normal([13, 3], stddev=0.1))
+b = tf.Variable(tf.zeros([3]))
+In [106]:
+# Define your TensorFlow model here
+y = tf.nn.softmax(tf.matmul(x, W) + b)
+In [107]:
+# Mean Squared Error(Cost Function)
+cost = tf.reduce_mean(tf.squared_difference(y_, y))
+In [116]:
+# Train the model in this cell
+Learn_rate = .005
+Batch_size = 15
+Epochs = 20
+
+train_step = tf.train.GradientDescentOptimizer(Learn_rate).minimize(cost)
+
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+     
+    saver = tf.train.Saver()
+    
+    for epoch in range(Epochs):
+        avg_cost = 0.
+        num_batches = int(wine_training.shape[0]/Batch_size)
+        
+        for _ in range(num_batches):
+            batch = wine_training.sample(n=Batch_size)
+
+            batch_features = batch.as_matrix()[:,:13]
+
+            batch_targets = pd.get_dummies(batch.Class).as_matrix()
+
+            _, c = sess.run([train_step, cost], feed_dict={x:batch_features, y_:batch_targets})
+
+            avg_cost += c/num_batches
+
+        print("Epoch %04d cost: %s" % (epoch + 1, "{:.4f}".format(avg_cost)))
+    
+    correct_prediction = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
+
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+    score = sess.run(accuracy, feed_dict={x: test_features, y_: test_targets}) * 100
+    print("\nThe model correctly identified %s of the test data." % "{:.2f}%".format(score))
+
+    save_path = saver.save(sess, model_path)
+    print("\nModel data saved to %s" % model_path)
+Epoch 0001 cost: 0.3337
+Epoch 0002 cost: 0.3706
+Epoch 0003 cost: 0.3773
+Epoch 0004 cost: 0.3643
+Epoch 0005 cost: 0.3323
+Epoch 0006 cost: 0.2599
+Epoch 0007 cost: 0.3452
+Epoch 0008 cost: 0.3256
+Epoch 0009 cost: 0.4294
+Epoch 0010 cost: 0.4095
+Epoch 0011 cost: 0.4291
+Epoch 0012 cost: 0.4038
+Epoch 0013 cost: 0.3976
+Epoch 0014 cost: 0.4197
+Epoch 0015 cost: 0.3673
+Epoch 0016 cost: 0.3695
+Epoch 0017 cost: 0.4279
+Epoch 0018 cost: 0.4199
+Epoch 0019 cost: 0.4372
+Epoch 0020 cost: 0.3198
+
+The model correctly identified 50.00% of the test data.
+
+Model data saved to tmp/model.ckpt
